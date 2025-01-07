@@ -1,0 +1,43 @@
+---
+- name: Destroy IaaS
+  hosts: localhost
+  become: yes
+  vars:
+    ansible_become_password: "{{ iaas_password }}"
+  tasks:
+    - name: Remove IaaS folders from exports
+      lineinfile:
+        path: /etc/exports
+        state: absent
+        line: "/export/iaas *(rw,sync,all_squash,no_subtree_check,insecure)"
+
+    - name: Reload NFS exports
+      command: exportfs -r
+
+    - name: Stop NFS service
+      systemd:
+        state: stopped
+        name: nfs-kernel-server.service
+
+    - name: Remove IaaS subfolders
+      file:
+        path: "/export/iaas/{{ item }}"
+        state: absent
+      with_items:
+        - images
+        - vms
+
+    - name: Remove /export/iaas folder
+      file:
+        path: "/export/iaas"
+        state: absent
+
+    - name: Uninstall packages
+      apt:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - libvirt-daemon-system
+        - libvirt-clients
+        - python3-libvirt
+        - nfs-kernel-server

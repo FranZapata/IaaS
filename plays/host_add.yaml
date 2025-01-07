@@ -1,0 +1,28 @@
+---
+- name: Install host
+  hosts: all
+  become: yes
+  vars:
+    ansible_ssh_user: "{{ host_user }}"
+    ansible_become_password: "{{ host_password }}"
+  tasks:
+    - name: Install
+      apt: name={{ item }} state=present update_cache=yes
+      with_items:
+      - libvirt-daemon-system
+      - rpcbind
+      - nfs-common
+    - name: Create IaaS folders
+      file:
+        path: "/mnt/iaas"
+        state: directory
+        owner: nobody
+        group: nogroup
+        mode: 0777
+    - name: Mount IaaS folder
+      mount:
+        name: /mnt/iaas
+        src: CCA-024-node1.dsicv.upv.es:/export/iaas
+        fstype: nfs
+        opts: rw,sync,hard
+        state: mounted
